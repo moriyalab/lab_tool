@@ -31,10 +31,8 @@ PLATFORM="$(uname -m)"
 
 if [ $PLATFORM = "x86_64" ]; then
     echo "x86"
-    docker build -t hoge .
-    # docker run -it --rm hoge /bin/bash
-    # docker pull ghcr.io/moriyalab/horus_inference_server:latest
-    docker run -it --rm -v $ROOT:/app -w /app --network host hoge /bin/bash
+    docker pull ghcr.io/moriyalab/lab_tool:latest
+    docker run -it --rm -v $ROOT:/app -w /app --network host ghcr.io/moriyalab/lab_tool:latest /bin/bash
 else
     echo "Not Support Platform. Only support x86."
 fi
