@@ -1,8 +1,12 @@
-FROM ubuntu:22.04
-RUN apt-get update && apt-get install -y curl
+FROM python:3.10.15-slim-bullseye
 
+RUN apt-get update && apt-get install -y git curl
 RUN git config --global --add safe.directory /app
-
 RUN python3 -m pip install --upgrade pip
-RUN pip install poetry \
+RUN python3 -m pip install poetry \
   && poetry config virtualenvs.create false
+
+WORKDIR /app
+COPY pyproject.toml* poetry.lock* /app/
+RUN poetry install 
+RUN rm -rf /app/pyproject.toml* /app/poetry.lock*
