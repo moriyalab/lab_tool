@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "lab_tool"
+version = "0.1.0"
+description = "research"
+authors = ["Taiga Takano <ttttghghnb554z@outlook.jp>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+gradio = "4.44.0"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
