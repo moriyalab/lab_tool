@@ -56,6 +56,10 @@ def plot_cwt(cwt_result, time_data, fmax):
 def wavelet_ui(uploaded_file, Fs, fmax, column_name):
     filepath = uploaded_file.name
     signal = load_signal(filepath, column_name)
+    timestamp = load_signal(filepath, "Timestamp")
+    print(timestamp[0])
+    print(timestamp[len(timestamp) - 1])
+
     if len(signal) == 0:
         return None, None
     
@@ -66,7 +70,7 @@ def wavelet_ui(uploaded_file, Fs, fmax, column_name):
     plt.plot(t_data, signal)
     plt.xlim(0, t_data[-1])
     plt.xticks(np.arange(0, t_data[-1] + 1, step=100))
-    plt.xlabel("Time [s]")
+    plt.xlabel("Time [sec]")
     plt.savefig(signal_filename)
 
     cwt_signal_filename = tempfile.NamedTemporaryFile(delete=False, suffix='.png').name
@@ -77,24 +81,23 @@ def wavelet_ui(uploaded_file, Fs, fmax, column_name):
 
     return cwt_signal_filename, signal_filename
 
-# Gradio UIの設定
+
 with gr.Blocks() as main_ui:
     with gr.Tab("Wavelet"):
         with gr.Row():
-            # 左側に入力要素を配置
             with gr.Column():
                 file_input = gr.File(label="CSVファイルをアップロードしてください。", file_count="single", file_types=["csv"])
                 fs_slider = gr.Slider(minimum=0, maximum=10000, value=1000, label="サンプリング周波数", step=10, info="単位はHz。")
                 fmax_slider = gr.Slider(minimum=0, maximum=200, value=60, label="wavelet 最大周波数", step=10, info="単位はHz。")
                 column_dropdown = gr.Dropdown(["Fp1", "Fp2", "T7", "T8", "O1", "O2"], value="Fp2", label="使用する信号データ", allow_custom_value=True, info="使用する信号データを選んでください。デフォルトはFp2です。")
+                start_time = gr.Slider(minimum=0, maximum=60, step=0.1, label="Start Time (sec)")
+                end_time = gr.Slider(minimum=0, maximum=60, step=0.1, label="End Time (sec)")
                 submit_button = gr.Button("計算開始")
 
-            # 右側に出力要素を配置
             with gr.Column():
                 wavelet_image = gr.Image(type="filepath", label="Wavelet")
                 signal_image = gr.Image(type="filepath", label="Signal")
 
-        # ボタンのクリックで処理を実行
         submit_button.click(wavelet_ui, inputs=[file_input, fs_slider, fmax_slider, column_dropdown], outputs=[wavelet_image, signal_image])
 
 if __name__ == "__main__":
