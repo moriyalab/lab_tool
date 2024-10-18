@@ -47,8 +47,8 @@ def continuous_wavelet_transform(Fs, data, fmax, width=48, wavelet_R=0.5):
 
 # 連続ウェーブレット変換結果をカラーマップとしてプロット
 def plot_cwt(cwt_result, time_data, fmax):
-    plt.imshow(cwt_result, cmap='jet', aspect='auto', 
-               extent=[time_data[0], time_data[-1], 0, fmax], 
+    plt.imshow(cwt_result, cmap='jet', aspect='auto',
+               extent=[time_data[0], time_data[-1], 0, fmax],
                vmax=abs(cwt_result).max(), vmin=-abs(cwt_result).max())
     plt.xlabel("Time [sec]")
     plt.ylabel("Frequency [Hz]")
@@ -63,16 +63,16 @@ def wavelet_ui(uploaded_file, Fs, fmax, column_name, start_time, end_time):
 
     if len(signal) == 0:
         return None, None
-    
+
     # 時間データを計算
     t_data = np.arange(0, len(signal) / Fs, 1 / Fs)
-    
+
     # スライダーの範囲に基づいてデータをフィルタリング
     start_idx = int(start_time * Fs)
     end_idx = int(end_time * Fs)
     signal = signal[start_idx:end_idx]
     t_data = t_data[start_idx:end_idx]
-    
+
     signal_filename = tempfile.NamedTemporaryFile(delete=False, suffix='.png').name
     plt.figure(dpi=200)
     plt.title("Signal")
