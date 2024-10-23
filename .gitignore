@@ -2,3 +2,7 @@
 *.csv
 *.xls
 *.png
+*.mp3
+__pycache__
+flagged
+*.DS_Store

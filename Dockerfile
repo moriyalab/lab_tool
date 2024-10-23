@@ -1,6 +1,6 @@
 FROM python:3.10.15-slim-bullseye
 
-RUN apt-get update && apt-get install -y git curl
+RUN apt-get update && apt-get install -y git curl ffmpeg
 RUN git config --global --add safe.directory /app
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install poetry \
