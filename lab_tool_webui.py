@@ -1,6 +1,8 @@
 import gradio as gr
 from lab_tools import wavelet
 from lab_tools import labutils
+from lab_tools import analyze1f
+
 
 def update_slider_range(filepath):
     timestamp = labutils.load_signal(filepath, "Timestamp")
@@ -33,5 +35,19 @@ with gr.Blocks() as main_ui:
                 signal_image = gr.Image(type="filepath", label="Signal")
 
         submit_button.click(wavelet.wavelet_ui, inputs=[file_input, fs_slider, fmax_slider, column_dropdown, start_time, end_time], outputs=[wavelet_image, signal_image])
+
+    with gr.Tab("1f Noise Search"):
+        with gr.Row():
+            with gr.Column():
+                file_input = gr.Text(label="YouTubeのリンクを貼り付けてください。")
+                submit_button = gr.Button("計算開始")
+
+            with gr.Column():
+                caption = gr.Text(label="動画タイトル")
+                result = gr.Image(type="filepath", label="Wavelet")
+
+        submit_button.click(analyze1f.analyze_1f_noise, inputs=[file_input], outputs=[caption, result])
+
+
 if __name__ == "__main__":
     main_ui.queue().launch(server_name="0.0.0.0")

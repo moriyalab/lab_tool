@@ -1,6 +1,7 @@
 import sys
 import pandas as pd
 
+
 # CSVファイルから信号データを読み込む
 def load_signal(file_path, column_name):
     try:
@@ -10,7 +11,7 @@ def load_signal(file_path, column_name):
                 if 'Timestamp' in line:
                     header_line = i
                     break
-        
+
         # 見つけたヘッダー行からデータを読み込む
         df = pd.read_csv(file_path, skiprows=header_line)
         signal = df[column_name].values

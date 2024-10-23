@@ -5,6 +5,7 @@ import tempfile
 
 from lab_tools import labutils
 
+
 # モルレーウェーブレット関数
 def morlet(x, f, width):
     sf = f / width
