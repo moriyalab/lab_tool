@@ -10,3 +10,8 @@ WORKDIR /app
 COPY pyproject.toml* poetry.lock* /app/
 RUN poetry install 
 RUN rm -rf /app/pyproject.toml* /app/poetry.lock*
+
+# For Huggingface
+# COPY . /app/
+
+# CMD [ "python3", "lab_tool_webui.py" ]
