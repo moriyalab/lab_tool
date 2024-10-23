@@ -4,6 +4,7 @@ import math
 import tempfile
 
 from lab_tools import labutils
+from lab_tools import filter
 
 
 # モルレーウェーブレット関数
@@ -42,12 +43,23 @@ def plot_cwt(cwt_result, time_data, fmax):
 
 
 # グラフ描画とCWTの処理を行う関数
-def wavelet_ui(uploaded_file, Fs, fmax, column_name, start_time, end_time):
+def wavelet_ui(
+        uploaded_file,
+        Fs, fmax, column_name, start_time, end_time,
+        filter_setting, fp_hp, fs_hp, gpass, gstop):
     filepath = uploaded_file.name
     signal = labutils.load_signal(filepath, column_name)
-
     if len(signal) == 0:
         return None, None
+
+    # Filter
+    timestamps = labutils.load_signal(filepath, "Timestamp")
+    dt = (timestamps[1] - timestamps[0])
+    samplerate = 1.0 / dt
+    if filter_setting == "High PASS":
+        signal = filter.highpass(signal, samplerate, fp_hp, fs_hp, gpass, gstop)
+    elif filter_setting == "Low PASS":
+        signal = filter.lowpass(signal, samplerate, fp_hp, fs_hp, gpass, gstop)
 
     # 時間データを計算
     t_data = np.arange(0, len(signal) / Fs, 1 / Fs)

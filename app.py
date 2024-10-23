@@ -22,6 +22,16 @@ with gr.Blocks() as main_ui:
                 column_dropdown = gr.Dropdown(["Fp1", "Fp2", "T7", "T8", "O1", "O2"], value="Fp2", label="使用する信号データ", allow_custom_value=True, info="使用する信号データを選んでください。デフォルトはFp2です。")
                 start_time = gr.Slider(minimum=0, maximum=60, value=0.0, step=0.5, label="Start Time (sec)")
                 end_time = gr.Slider(minimum=0, maximum=60, value=60.0, step=0.5, label="End Time (sec)")
+                filter_setting = gr.Radio(
+                    ["No Filter", "High PASS", "Low PASS"],
+                    label="フィルター設定",
+                    value="High PASS",
+                )
+                fp_hp = gr.Slider(minimum=0, maximum=20, value=3, step=0.1, label="通過域端周波数 [Hz]")
+                fs_hp = gr.Slider(minimum=0, maximum=20, value=1, step=0.1, label="阻止域端周波数 [Hz]")
+                gpass = gr.Slider(minimum=0, maximum=100, value=3, step=1, label="通過域端最大損失 [dB]")
+                gstop = gr.Slider(minimum=0, maximum=100, value=40, step=1, label="阻止域端最小損失 [dB]")
+
                 submit_button = gr.Button("計算開始")
 
                 file_input.change(
@@ -34,7 +44,11 @@ with gr.Blocks() as main_ui:
                 wavelet_image = gr.Image(type="filepath", label="Wavelet")
                 signal_image = gr.Image(type="filepath", label="Signal")
 
-        submit_button.click(wavelet.wavelet_ui, inputs=[file_input, fs_slider, fmax_slider, column_dropdown, start_time, end_time], outputs=[wavelet_image, signal_image])
+        submit_button.click(wavelet.wavelet_ui, inputs=[
+            file_input,
+            fs_slider, fmax_slider, column_dropdown, start_time, end_time,
+            filter_setting, fp_hp, fs_hp, gpass, gstop],
+            outputs=[wavelet_image, signal_image])
 
     with gr.Tab("1f Noise Search"):
         with gr.Row():
@@ -50,4 +64,4 @@ with gr.Blocks() as main_ui:
 
 
 if __name__ == "__main__":
-    main_ui.queue().launch(server_name="0.0.0.0")
+    main_ui.queue().launch(server_name="0.0.0.0", server_port=7860)
