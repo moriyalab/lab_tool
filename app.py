@@ -1,7 +1,9 @@
 import gradio as gr
+from moviepy.editor import VideoFileClip
 from lab_tools import wavelet
 from lab_tools import labutils
 from lab_tools import analyze1f
+from lab_tools import ytutil
 
 
 def update_slider_range(filepath):
@@ -10,6 +12,36 @@ def update_slider_range(filepath):
     min_value = float(timestamp[0])
 
     return gr.update(minimum=min_value, maximum=max_value), gr.update(minimum=min_value, maximum=max_value, value=max_value)
+
+
+def update_anlyze_setting(mode):
+    if mode == "YouTube":
+        return gr.update(visible=True, value=None), gr.update(visible=False, value=None), gr.update(visible=True), gr.update(value=None)
+    else:
+        return gr.update(visible=False, value=None), gr.update(visible=True, value=None), gr.update(visible=False), gr.update(value=None)
+
+
+def update_slidar_range_youtube(video_url):
+    if video_url == "":
+        return gr.update(maximum=0, value=0), gr.update(maximum=0, value=0), gr.update(value=None), gr.update(value=None), gr.update(value=None)
+
+    video_info = ytutil.get_video_info(video_url)
+    duration = int(video_info["duration"]) - 1
+    title = video_info["title"]
+
+    ytutil.remove_mp4_file()
+
+    return gr.update(maximum=duration), gr.update(maximum=duration, value=duration), gr.update(value=title), gr.update(value=None), gr.update(value=None)
+
+
+def update_slidar_range_video_file(file_path):
+    if file_path == "":
+        return gr.update(maximum=0), gr.update(maximum=0, value=0), gr.update(value=None), gr.update(value=None)
+
+    with VideoFileClip(file_path) as video:
+        duration = video.duration
+
+    return gr.update(maximum=duration), gr.update(maximum=duration, value=duration), gr.update(value=None), gr.update(value=None)
 
 
 with gr.Blocks() as main_ui:
@@ -53,15 +85,42 @@ with gr.Blocks() as main_ui:
     with gr.Tab("1f Noise Search"):
         with gr.Row():
             with gr.Column():
-                file_input = gr.Text(label="YouTubeのリンクを貼り付けてください。")
+                mode_setting = gr.Radio(
+                    ["YouTube", "動画ファイル"],
+                    label="解析データ",
+                    value="YouTube",
+                )
+                youtube_url_input = gr.Text(label="YouTubeのリンクを貼り付けてください。")
+                file_input = gr.File(label="動画をアップロードしてください", visible=False, file_count="single", file_types=["mp4"])
+                start_time = gr.Slider(minimum=0, maximum=3600, value=0, step=1, label="Start Time (sec)")
+                end_time = gr.Slider(minimum=0, maximum=3600, value=10, step=1, label="End Time (sec)")
                 submit_button = gr.Button("計算開始")
+                download_button = gr.Button("ダウンロード")
 
             with gr.Column():
                 caption = gr.Text(label="動画タイトル")
                 result = gr.Image(type="filepath", label="Wavelet")
+                file_result = gr.File(label="Downloaded Video")
 
-        submit_button.click(analyze1f.analyze_1f_noise, inputs=[file_input], outputs=[caption, result])
+        submit_button.click(analyze1f.analyze_1f_noise, inputs=[mode_setting, youtube_url_input, file_input, start_time, end_time], outputs=[caption, result])
+        download_button.click(ytutil.download_youtube_video, inputs=[youtube_url_input], outputs=[file_result])
 
+        mode_setting.change(
+            update_anlyze_setting,
+            inputs=mode_setting,
+            outputs=[youtube_url_input, file_input, download_button, result]
+        )
+        youtube_url_input.change(
+            update_slidar_range_youtube,
+            inputs=youtube_url_input,
+            outputs=[start_time, end_time, caption, file_result, result]
+            )
+        file_input.change(
+            update_slidar_range_video_file,
+            inputs=file_input,
+            outputs=[start_time, end_time, file_result, result]
+        )
 
 if __name__ == "__main__":
     main_ui.queue().launch(server_name="0.0.0.0", server_port=7860)
+    ytutil.remove_mp4_file()

@@ -9,6 +9,9 @@ python = ">=3.10,<3.12"
 gradio = "4.44.0"
 yt-dlp = "2024.07.07"
 scipy = "1.14.0"
+scikit-learn = "1.5.2"
+flake8 = "7.1.1"
+moviepy = "1.0.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
