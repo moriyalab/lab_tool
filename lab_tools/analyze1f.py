@@ -48,7 +48,7 @@ def process_audio(filename: str, start_time: float, end_time: float = None):
         audio = AudioSegment.from_mp3(filename)
     except CouldntDecodeError:
         raise ValueError(f"MP3ファイル {filename} のデコードに失敗しました。ファイルが破損している可能性があります。")
-    
+
     os.remove(filename)
 
     # 時間範囲をミリ秒単位に変換
