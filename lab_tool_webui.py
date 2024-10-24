@@ -41,12 +41,16 @@ with gr.Blocks() as main_ui:
             with gr.Column():
                 file_input = gr.Text(label="YouTubeのリンクを貼り付けてください。")
                 submit_button = gr.Button("計算開始")
+                download_button = gr.Button("Download")
 
             with gr.Column():
                 caption = gr.Text(label="動画タイトル")
                 result = gr.Image(type="filepath", label="Wavelet")
+                file_result = gr.File(label="Downloaded Video")
+
 
         submit_button.click(analyze1f.analyze_1f_noise, inputs=[file_input], outputs=[caption, result])
+        download_button.click(analyze1f.download_youtube_video, inputs=[file_input], outputs=[file_result])
 
 
 if __name__ == "__main__":

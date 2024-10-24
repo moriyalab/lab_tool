@@ -5,6 +5,7 @@ from scipy.fftpack import fft
 import yt_dlp
 import os
 import tempfile
+from sklearn.linear_model import LinearRegression
 
 
 def download_youtube(youtube_url: str) -> str:
@@ -28,6 +29,18 @@ def download_youtube(youtube_url: str) -> str:
 
     return filename
 
+def download_youtube_video(youtube_url: str) -> str:
+    ydl_opts = {
+        'outtmpl': '%(title)s.%(ext)s'
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info_dict = ydl.extract_info(youtube_url, download=True)
+        file_path = ydl.prepare_filename(info_dict)
+        print(f"Downloaded file path: {file_path}")
+
+    return file_path
+
 
 def analyze_1f_noise(youtube_url: str):
     filename = download_youtube(youtube_url)
@@ -46,14 +59,20 @@ def analyze_1f_noise(youtube_url: str):
 
     power_spectrum = 2.0/N * np.abs(yf[:N//2])
 
-    xf_log = xf[1:]
-    power_spectrum_log = power_spectrum[1:]
+    xf_log = np.log10(xf[1:])
+    power_spectrum_log = np.log10(power_spectrum[1:])
+
+    # 線形回帰モデルによる一時近似
+    xf_log_reshaped = xf_log.reshape(-1, 1)
+    reg = LinearRegression().fit(xf_log_reshaped, power_spectrum_log)
+    power_spectrum_pred = reg.predict(xf_log_reshaped)
 
     graphfile_path = tempfile.NamedTemporaryFile(delete=False, suffix='.png').name
 
     # グラフの描画
     plt.figure(figsize=(10, 6))
-    plt.plot(xf_log, power_spectrum_log)
+    plt.plot(10**xf_log, 10**power_spectrum_log, label='Power Spectrum')
+    plt.plot(10**xf_log, 10**power_spectrum_pred, color='red', linestyle='--', label='Linear Approximation')
     plt.xscale('log')
     plt.yscale('log')
 
@@ -62,6 +81,7 @@ def analyze_1f_noise(youtube_url: str):
     plt.ylabel('Power')
     plt.grid(True, which="both", ls="--")
     plt.xlim([1, sample_rate // 2])
+    plt.legend()
     plt.savefig(graphfile_path)
 
     filename, _ = os.path.splitext(filename)
