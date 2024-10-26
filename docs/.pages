@@ -1,0 +1,4 @@
+nav:
+    - はじめに: index.md
+    - ウェーブレット変換: wavelet.md
+    - 1/F揺らぎ分析: analyze1f.md
