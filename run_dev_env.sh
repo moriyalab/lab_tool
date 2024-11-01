@@ -32,7 +32,7 @@ PLATFORM="$(uname -m)"
 if [ $PLATFORM = "x86_64" ]; then
     echo "x86"
     docker pull ghcr.io/moriyalab/lab_tool:latest
-    docker run -it --rm -v $ROOT:/app -w /app --network host ghcr.io/moriyalab/lab_tool:latest /bin/bash
+    docker run -it --rm -v $ROOT:/app -w /app --network host ghcr.io/moriyalab/lab_tool_dev:latest /bin/bash
 else
     echo "Not Support Platform. Only support x86."
 fi
