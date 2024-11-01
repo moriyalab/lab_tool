@@ -16,4 +16,4 @@ FROM builder_image AS release_image
 COPY --from=builder_image /app /app
 COPY . /app/
 
-CMD [ "python3", "lab_tool_webui.py" ]
+CMD [ "python3", "app.py" ]
