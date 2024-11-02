@@ -34,12 +34,13 @@ def continuous_wavelet_transform(Fs, data, fmax, width=48, wavelet_R=0.5):
 # 連続ウェーブレット変換結果をカラーマップとしてプロット
 def plot_cwt(cwt_result, time_data, fmax):
     plt.imshow(cwt_result, cmap='jet', aspect='auto',
-               extent=[time_data[0], time_data[-1], 0, fmax],
+               extent=[time_data[0], time_data[-1], fmax, 0],
                vmax=abs(cwt_result).max(), vmin=-abs(cwt_result).max())
     plt.xlabel("Time [sec]")
     plt.ylabel("Frequency [Hz]")
     plt.colorbar(label="Power")
     plt.clim(-5, 5)
+    plt.gca().invert_yaxis()
 
 
 # グラフ描画とCWTの処理を行う関数
