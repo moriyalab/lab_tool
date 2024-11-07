@@ -1,6 +1,6 @@
 import gradio as gr
 from moviepy.editor import VideoFileClip
-from lab_tools import wavelet
+from lab_tools import spectrogram
 from lab_tools import labutils
 from lab_tools import analyze1f
 from lab_tools import ytutil
@@ -45,10 +45,15 @@ def update_slidar_range_video_file(file_path):
 
 
 with gr.Blocks() as main_ui:
-    with gr.Tab("Wavelet"):
+    with gr.Tab("Spectrogram analyze"):
         with gr.Row():
             with gr.Column():
                 file_input = gr.File(label="CSVファイルをアップロードしてください。", file_count="single", file_types=["csv"])
+                analysis_method = gr.Radio(
+                    ["Short-Time Fourier Transform", "Wavelet"],
+                    label="Analysis method",
+                    value="Short-Time Fourier Transform",
+                )
                 fs_slider = gr.Slider(minimum=0, maximum=10000, value=1000, label="サンプリング周波数", step=10, info="単位はHz。")
                 fmax_slider = gr.Slider(minimum=0, maximum=200, value=60, label="wavelet 最大周波数", step=10, info="単位はHz。")
                 column_dropdown = gr.Dropdown(["Fp1", "Fp2", "T7", "T8", "O1", "O2"], value="Fp2", label="使用する信号データ", allow_custom_value=True, info="使用する信号データを選んでください。デフォルトはFp2です。")
@@ -76,13 +81,13 @@ with gr.Blocks() as main_ui:
                 wavelet_image = gr.Image(type="filepath", label="Wavelet")
                 signal_image = gr.Image(type="filepath", label="Signal")
 
-        submit_button.click(wavelet.wavelet_ui, inputs=[
-            file_input,
+        submit_button.click(spectrogram.spectrogram_ui, inputs=[
+            file_input, analysis_method,
             fs_slider, fmax_slider, column_dropdown, start_time, end_time,
             filter_setting, fp_hp, fs_hp, gpass, gstop],
             outputs=[wavelet_image, signal_image])
 
-    with gr.Tab("1f Noise Search"):
+    with gr.Tab("1f noise analyze"):
         with gr.Row():
             with gr.Column():
                 mode_setting = gr.Radio(
