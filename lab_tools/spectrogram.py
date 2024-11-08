@@ -44,8 +44,8 @@ def stft_plot_spectrogram(data, Fs, N, freq_limit=None):
     amp = np.abs(Zxx)
     amp[amp == 0] = np.finfo(float).eps
     fig, ax = plt.subplots(figsize=(12, 6))
-    spectrogram = ax.pcolormesh(times, freqs, np.log10(amp), shading="auto", vmin=0, vmax=5)
-    fig.colorbar(spectrogram, ax=ax, orientation="vertical").set_label("Amplitude (dB)")
+    spectrogram = ax.pcolormesh(times, freqs, amp, shading="auto", vmin=0, vmax=5)
+    fig.colorbar(spectrogram, ax=ax, orientation="vertical").set_label("Amplitude")
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Frequency [Hz]")
     if freq_limit:
