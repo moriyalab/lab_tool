@@ -4,6 +4,7 @@ import scipy.signal as signal
 from lab_tools import labutils
 from lab_tools import filter
 import math
+import os
 
 
 def morlet_wavelet(x, f, width):
@@ -53,6 +54,14 @@ def stft_plot_spectrogram(data, Fs, N, freq_limit=None):
     plt.show()
 
 
+def normalize_signal(signal, min_val=0, max_val=10):
+    signal_min = np.min(signal)
+    signal_max = np.max(signal)
+    if signal_max - signal_min == 0:
+        return np.full_like(signal, min_val)
+    return (signal - signal_min) / (signal_max - signal_min) * (max_val - min_val) + min_val
+
+
 # グラフ描画とスペクトログラムの処理を行う関数
 def spectrogram_ui(
         uploaded_file, analysis_method,
@@ -62,6 +71,9 @@ def spectrogram_ui(
     signal = labutils.load_signal(filepath, column_name)
     if len(signal) == 0:
         return None, None
+
+    output_dir = "/tmp/spectrogram/"
+    os.makedirs(output_dir, exist_ok=True)
 
     # Filter
     timestamps = labutils.load_signal(filepath, "Timestamp")
@@ -81,6 +93,9 @@ def spectrogram_ui(
     signal = signal[start_idx:end_idx]
     t_data = t_data[start_idx:end_idx]
 
+    # 信号を正規化
+    # signal = normalize_signal(signal, min_val=0, max_val=5)
+
     # 信号をプロットして保存
     plt.figure(dpi=200)
     plt.title("Signal")
@@ -88,17 +103,17 @@ def spectrogram_ui(
     plt.xlim(start_time, end_time)
     plt.xlabel("Time [sec]")
     plt.ylabel("Voltage [uV]")
-    signal_filename = "signal_plot.png"
+    signal_filename = "/tmp/spectrogram/signal_plot.png"
     plt.savefig(signal_filename)
 
     # スペクトログラムをプロットして保存
     if analysis_method == "Short-Time Fourier Transform":
         plt.figure(dpi=200)
         stft_plot_spectrogram(data=signal, Fs=Fs, N=256, freq_limit=fmax)
-        spectrogram_filename = "stft_spectrogram_plot.png"
+        spectrogram_filename = "/tmp/spectrogram/stft_spectrogram_plot.png"
         plt.savefig(spectrogram_filename)
     else:
-        spectrogram_filename = "wavelet_spectrogram_plot.png"
+        spectrogram_filename = "/tmp/spectrogram/wavelet_spectrogram_plot.png"
         cwt_signal = continuous_wavelet_transform(Fs=Fs, data=signal, fmax=fmax)
         plt.figure(dpi=200)
         plot_cwt(cwt_signal, t_data, fmax)
