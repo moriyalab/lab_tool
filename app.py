@@ -81,7 +81,7 @@ with gr.Blocks() as main_ui:
                 wavelet_image = gr.Image(type="filepath", label="Wavelet")
                 signal_image = gr.Image(type="filepath", label="Signal")
 
-        submit_button.click(spectrogram.spectrogram_ui, inputs=[
+        submit_button.click(spectrogram.generate_spectrogram_and_signal_plot, inputs=[
             file_input, analysis_method,
             fs_slider, fmax_slider, column_dropdown, start_time, end_time,
             filter_setting, fp_hp, fs_hp, gpass, gstop],

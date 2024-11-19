@@ -1,38 +1,48 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as signal
+from scipy.signal import fftconvolve
 from lab_tools import labutils
 from lab_tools import filter
 import math
 import os
 
 
-def morlet_wavelet(x, f, width):
-    sf = f / width
-    st = 1 / (2 * math.pi * sf)
-    A = 1 / (st * math.sqrt(2 * math.pi))
-    h = -np.power(x, 2) / (2 * st**2)
-    co1 = 1j * 2 * math.pi * f * x
-    return A * np.exp(co1) * np.exp(h)
+# モルレーウェーブレットの計算
+def calculate_morlet_wavelet(time_array, frequency, wavelet_width):
+    scale_factor = frequency / wavelet_width
+    std_time = 1 / (2 * math.pi * scale_factor)
+    amplitude = 1 / (std_time * np.sqrt(2 * math.pi))
+    exp_component = -np.power(time_array, 2) / (2 * std_time**2)
+    oscillatory_component = 1j * 2 * math.pi * frequency * time_array
+    return amplitude * np.exp(oscillatory_component + exp_component)
 
 
-def continuous_wavelet_transform(Fs, data, fmax, width=48, wavelet_R=0.5):
-    Ts = 1 / Fs
-    wavelet_length = np.arange(-wavelet_R, wavelet_R, Ts)
-    data_length = len(data)
-    cwt_result = np.zeros([fmax, data_length])
+# 連続ウェーブレット変換 (Continuous Wavelet Transform)
+def perform_cwt(sample_rate, signal_data, max_frequency, wavelet_width=48, wavelet_range=0.5):
+    time_step = 1 / sample_rate
+    wavelet_time_array = np.arange(-wavelet_range, wavelet_range, time_step)
+    signal_length = len(signal_data)
+    cwt_matrix = np.zeros((max_frequency, signal_length))
 
-    for i in range(fmax):
-        conv_result = np.convolve(data, morlet_wavelet(wavelet_length, i + 1, width), mode='same')
-        cwt_result[i, :] = (2 * np.abs(conv_result) / Fs) ** 2
+    # モルレーウェーブレットを全て事前計算
+    wavelets = [
+        calculate_morlet_wavelet(wavelet_time_array, freq + 1, wavelet_width)
+        for freq in range(max_frequency)
+    ]
 
-    return cwt_result
+    for freq, wavelet in enumerate(wavelets):
+        convolution_result = fftconvolve(signal_data, wavelet, mode='same')
+        cwt_matrix[freq, :] = (2 * np.abs(convolution_result) / sample_rate) ** 2
+
+    return cwt_matrix
 
 
-def plot_cwt(cwt_result, time_data, fmax):
-    plt.imshow(cwt_result, cmap='jet', aspect='auto',
-               extent=[time_data[0], time_data[-1], fmax, 0],
-               vmax=abs(cwt_result).max(), vmin=-abs(cwt_result).max())
+# CWTの結果をプロットする関数
+def plot_cwt_result(cwt_matrix, time_array, max_frequency):
+    plt.imshow(cwt_matrix, cmap='jet', aspect='auto',
+               extent=[time_array[0], time_array[-1], max_frequency, 0],
+               vmax=abs(cwt_matrix).max(), vmin=-abs(cwt_matrix).max())
     plt.xlabel("Time [sec]")
     plt.ylabel("Frequency [Hz]")
     plt.colorbar(label="Power")
@@ -40,83 +50,82 @@ def plot_cwt(cwt_result, time_data, fmax):
     plt.gca().invert_yaxis()
 
 
-def stft_plot_spectrogram(data, Fs, N, freq_limit=None):
-    freqs, times, Zxx = signal.stft(data, fs=Fs, window='hann', nperseg=N, noverlap=None)
-    amp = np.abs(Zxx)
-    amp[amp == 0] = np.finfo(float).eps
+# 短時間フーリエ変換 (STFT) のスペクトログラムをプロットする関数
+def plot_stft_spectrogram(signal_data, sample_rate, segment_length, max_frequency=None):
+    frequencies, times, stft_result = signal.stft(signal_data, fs=sample_rate, window='hann', nperseg=segment_length, noverlap=None)
+    amplitude = np.abs(stft_result)
+    amplitude[amplitude == 0] = np.finfo(float).eps
     fig, ax = plt.subplots(figsize=(12, 6))
-    spectrogram = ax.pcolormesh(times, freqs, amp, shading="auto", vmin=0, vmax=5)
+    spectrogram = ax.pcolormesh(times, frequencies, amplitude, shading="auto", vmin=0, vmax=5)
     fig.colorbar(spectrogram, ax=ax, orientation="vertical").set_label("Amplitude")
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Frequency [Hz]")
-    if freq_limit:
-        ax.set_ylim([0, freq_limit])
+    if max_frequency:
+        ax.set_ylim([0, max_frequency])
     plt.show()
 
 
-def normalize_signal(signal, min_val=0, max_val=10):
-    signal_min = np.min(signal)
-    signal_max = np.max(signal)
+# 信号を正規化する関数
+def normalize_signal(input_signal, min_val=0, max_val=10):
+    signal_min = np.min(input_signal)
+    signal_max = np.max(input_signal)
     if signal_max - signal_min == 0:
-        return np.full_like(signal, min_val)
-    return (signal - signal_min) / (signal_max - signal_min) * (max_val - min_val) + min_val
+        return np.full_like(input_signal, min_val)
+    return (input_signal - signal_min) / (signal_max - signal_min) * (max_val - min_val) + min_val
 
 
-# グラフ描画とスペクトログラムの処理を行う関数
-def spectrogram_ui(
+# UI処理: スペクトログラム生成・信号プロット
+def generate_spectrogram_and_signal_plot(
         uploaded_file, analysis_method,
-        Fs, fmax, column_name, start_time, end_time,
-        filter_setting, fp_hp, fs_hp, gpass, gstop):
-    filepath = uploaded_file.name
-    signal = labutils.load_signal(filepath, column_name)
-    if len(signal) == 0:
+        sample_rate, max_frequency, signal_column_name, start_time, end_time,
+        filter_type, highpass_cutoff, stopband_cutoff, passband_ripple, stopband_attenuation):
+    file_path = uploaded_file.name
+    signal_data = labutils.load_signal(file_path, signal_column_name)
+    if len(signal_data) == 0:
         return None, None
 
     output_dir = "/tmp/spectrogram/"
     os.makedirs(output_dir, exist_ok=True)
 
-    # Filter
-    timestamps = labutils.load_signal(filepath, "Timestamp")
-    dt = (timestamps[1] - timestamps[0])
-    samplerate = 1.0 / dt
-    if filter_setting == "High PASS":
-        signal = filter.highpass(signal, samplerate, fp_hp, fs_hp, gpass, gstop)
-    elif filter_setting == "Low PASS":
-        signal = filter.lowpass(signal, samplerate, fp_hp, fs_hp, gpass, gstop)
+    # フィルタ処理
+    timestamps = labutils.load_signal(file_path, "Timestamp")
+    delta_time = timestamps[1] - timestamps[0]
+    actual_sample_rate = 1.0 / delta_time
+    if filter_type == "High PASS":
+        signal_data = filter.highpass(signal_data, actual_sample_rate, highpass_cutoff, stopband_cutoff, passband_ripple, stopband_attenuation)
+    elif filter_type == "Low PASS":
+        signal_data = filter.lowpass(signal_data, actual_sample_rate, highpass_cutoff, stopband_cutoff, passband_ripple, stopband_attenuation)
 
-    # 時間データを計算
-    t_data = np.arange(0, len(signal) / Fs, 1 / Fs)
+    # 時間配列を計算
+    time_array = np.arange(0, len(signal_data) / sample_rate, 1 / sample_rate)
 
-    # スライダーの範囲に基づいてデータをフィルタリング
-    start_idx = int(start_time * Fs)
-    end_idx = int(end_time * Fs)
-    signal = signal[start_idx:end_idx]
-    t_data = t_data[start_idx:end_idx]
+    # 開始時間と終了時間の範囲に基づきデータをトリミング
+    start_index = int(start_time * sample_rate)
+    end_index = int(end_time * sample_rate)
+    signal_data = signal_data[start_index:end_index]
+    time_array = time_array[start_index:end_index]
 
-    # 信号を正規化
-    # signal = normalize_signal(signal, min_val=0, max_val=5)
-
-    # 信号をプロットして保存
+    # 信号プロットの保存
     plt.figure(dpi=200)
     plt.title("Signal")
-    plt.plot(t_data, signal)
+    plt.plot(time_array, signal_data)
     plt.xlim(start_time, end_time)
     plt.xlabel("Time [sec]")
     plt.ylabel("Voltage [uV]")
-    signal_filename = "/tmp/spectrogram/signal_plot.png"
-    plt.savefig(signal_filename)
+    signal_plot_path = os.path.join(output_dir, "signal_plot.png")
+    plt.savefig(signal_plot_path)
 
-    # スペクトログラムをプロットして保存
+    # スペクトログラムプロットの保存
     if analysis_method == "Short-Time Fourier Transform":
         plt.figure(dpi=200)
-        stft_plot_spectrogram(data=signal, Fs=Fs, N=256, freq_limit=fmax)
-        spectrogram_filename = "/tmp/spectrogram/stft_spectrogram_plot.png"
-        plt.savefig(spectrogram_filename)
+        plot_stft_spectrogram(signal_data, sample_rate, segment_length=256, max_frequency=max_frequency)
+        spectrogram_plot_path = os.path.join(output_dir, "stft_spectrogram_plot.png")
+        plt.savefig(spectrogram_plot_path)
     else:
-        spectrogram_filename = "/tmp/spectrogram/wavelet_spectrogram_plot.png"
-        cwt_signal = continuous_wavelet_transform(Fs=Fs, data=signal, fmax=fmax)
+        spectrogram_plot_path = os.path.join(output_dir, "wavelet_spectrogram_plot.png")
+        cwt_matrix = perform_cwt(sample_rate, signal_data, max_frequency)
         plt.figure(dpi=200)
-        plot_cwt(cwt_signal, t_data, fmax)
-        plt.savefig(spectrogram_filename)
+        plot_cwt_result(cwt_matrix, time_array, max_frequency)
+        plt.savefig(spectrogram_plot_path)
 
-    return spectrogram_filename, signal_filename
+    return spectrogram_plot_path, signal_plot_path
