@@ -51,18 +51,37 @@ def plot_cwt_result(cwt_matrix, time_array, max_frequency):
 
 
 # 短時間フーリエ変換 (STFT) のスペクトログラムをプロットする関数
-def plot_stft_spectrogram(signal_data, sample_rate, segment_length, max_frequency=None):
-    frequencies, times, stft_result = signal.stft(signal_data, fs=sample_rate, window='hann', nperseg=segment_length, noverlap=None)
+def plot_stft_spectrogram(signal_data, sample_rate, segment_length, overlap=0.5, max_frequency=None):
+    """
+    短時間フーリエ変換(STFT)スペクトログラムをプロットします。
+
+    Parameters:
+        signal_data (np.ndarray): 信号データ
+        sample_rate (int): サンプリングレート
+        segment_length (int): セグメント長（nperseg）
+        overlap (float): セグメントのオーバーラップ率 (0.0～1.0)
+        max_frequency (float, optional): 表示する最大周波数
+    """
+    # オーバーラップするサンプル数を計算
+    noverlap = int(segment_length * overlap)
+
+    # STFTの計算
+    frequencies, times, stft_result = signal.stft(
+        signal_data, fs=sample_rate, window='hann', nperseg=segment_length, noverlap=noverlap
+    )
     amplitude = np.abs(stft_result)
-    amplitude[amplitude == 0] = np.finfo(float).eps
+    amplitude[amplitude == 0] = np.finfo(float).eps  # 振幅がゼロの箇所を微小値に置き換え
+
+    # プロット
     fig, ax = plt.subplots(figsize=(12, 6))
     spectrogram = ax.pcolormesh(times, frequencies, amplitude, shading="auto", vmin=0, vmax=5)
     fig.colorbar(spectrogram, ax=ax, orientation="vertical").set_label("Amplitude")
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Frequency [Hz]")
+
+    # 最大周波数の設定
     if max_frequency:
         ax.set_ylim([0, max_frequency])
-    plt.show()
 
 
 # 信号を正規化する関数
@@ -118,7 +137,7 @@ def generate_spectrogram_and_signal_plot(
     # スペクトログラムプロットの保存
     if analysis_method == "Short-Time Fourier Transform":
         plt.figure(dpi=200)
-        plot_stft_spectrogram(signal_data, sample_rate, segment_length=256, max_frequency=max_frequency)
+        plot_stft_spectrogram(signal_data, sample_rate=sample_rate, segment_length=4096, overlap=0.99, max_frequency=max_frequency)
         spectrogram_plot_path = os.path.join(output_dir, "stft_spectrogram_plot.png")
         plt.savefig(spectrogram_plot_path)
     else:
