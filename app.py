@@ -78,7 +78,7 @@ with gr.Blocks() as main_ui:
                 )
 
             with gr.Column():
-                wavelet_image = gr.Image(type="filepath", label="Wavelet")
+                wavelet_image = gr.Image(type="filepath", label="Spectrogram")
                 signal_image = gr.Image(type="filepath", label="Signal")
 
         submit_button.click(spectrogram.generate_spectrogram_and_signal_plot, inputs=[

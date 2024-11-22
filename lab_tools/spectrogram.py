@@ -40,13 +40,14 @@ def perform_cwt(sample_rate, signal_data, max_frequency, wavelet_width=48, wavel
 
 # CWTの結果をプロットする関数
 def plot_cwt_result(cwt_matrix, time_array, max_frequency):
+    plt.subplots(figsize=(12, 6))
     plt.imshow(cwt_matrix, cmap='jet', aspect='auto',
                extent=[time_array[0], time_array[-1], max_frequency, 0],
                vmax=abs(cwt_matrix).max(), vmin=-abs(cwt_matrix).max())
     plt.xlabel("Time [sec]")
     plt.ylabel("Frequency [Hz]")
     plt.colorbar(label="Power")
-    plt.clim(-5, 5)
+    plt.clim(0, 5)
     plt.gca().invert_yaxis()
 
 
@@ -58,8 +59,8 @@ def plot_stft_spectrogram(signal_data, sample_rate, segment_length, overlap=0.5,
     Parameters:
         signal_data (np.ndarray): 信号データ
         sample_rate (int): サンプリングレート
-        segment_length (int): セグメント長（nperseg）
-        overlap (float): セグメントのオーバーラップ率 (0.0～1.0)
+        segment_length (int): セグメント長(nperseg)
+        overlap (float): セグメントのオーバーラップ率 (0.0~1.0)
         max_frequency (float, optional): 表示する最大周波数
     """
     # オーバーラップするサンプル数を計算
@@ -67,14 +68,15 @@ def plot_stft_spectrogram(signal_data, sample_rate, segment_length, overlap=0.5,
 
     # STFTの計算
     frequencies, times, stft_result = signal.stft(
-        signal_data, fs=sample_rate, window='hann', nperseg=segment_length, noverlap=noverlap
+        signal_data, fs=sample_rate, window='hamming', nperseg=segment_length, noverlap=noverlap
     )
     amplitude = np.abs(stft_result)
     amplitude[amplitude == 0] = np.finfo(float).eps  # 振幅がゼロの箇所を微小値に置き換え
 
     # プロット
+
     fig, ax = plt.subplots(figsize=(12, 6))
-    spectrogram = ax.pcolormesh(times, frequencies, amplitude, shading="auto", vmin=0, vmax=5)
+    spectrogram = ax.pcolormesh(times, frequencies, amplitude, cmap='jet', shading="auto", vmin=0, vmax=5)
     fig.colorbar(spectrogram, ax=ax, orientation="vertical").set_label("Amplitude")
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Frequency [Hz]")
@@ -84,21 +86,14 @@ def plot_stft_spectrogram(signal_data, sample_rate, segment_length, overlap=0.5,
         ax.set_ylim([0, max_frequency])
 
 
-# 信号を正規化する関数
-def normalize_signal(input_signal, min_val=0, max_val=10):
-    signal_min = np.min(input_signal)
-    signal_max = np.max(input_signal)
-    if signal_max - signal_min == 0:
-        return np.full_like(input_signal, min_val)
-    return (input_signal - signal_min) / (signal_max - signal_min) * (max_val - min_val) + min_val
-
-
 # UI処理: スペクトログラム生成・信号プロット
 def generate_spectrogram_and_signal_plot(
         uploaded_file, analysis_method,
         sample_rate, max_frequency, signal_column_name, start_time, end_time,
         filter_type, highpass_cutoff, stopband_cutoff, passband_ripple, stopband_attenuation):
     file_path = uploaded_file.name
+    file_basename = os.path.basename(file_path)
+
     signal_data = labutils.load_signal(file_path, signal_column_name)
     if len(signal_data) == 0:
         return None, None
@@ -125,9 +120,16 @@ def generate_spectrogram_and_signal_plot(
     time_array = time_array[start_index:end_index]
 
     # 信号プロットの保存
+    window_size = 50
+    smoothed_signal = np.convolve(signal_data, np.ones(window_size) / window_size, mode='valid')
+    trimmed_time_array = time_array[:len(smoothed_signal)]
+
+    title = f"Signal(File: {file_basename}, Convolve Window Size: {window_size})"
+
     plt.figure(dpi=200)
-    plt.title("Signal")
-    plt.plot(time_array, signal_data)
+    plt.subplots(figsize=(12, 6))
+    plt.title(title)
+    plt.plot(trimmed_time_array, smoothed_signal)
     plt.xlim(start_time, end_time)
     plt.xlabel("Time [sec]")
     plt.ylabel("Voltage [uV]")
@@ -139,12 +141,16 @@ def generate_spectrogram_and_signal_plot(
         plt.figure(dpi=200)
         plot_stft_spectrogram(signal_data, sample_rate=sample_rate, segment_length=4096, overlap=0.99, max_frequency=max_frequency)
         spectrogram_plot_path = os.path.join(output_dir, "stft_spectrogram_plot.png")
+        title = f"Spectrogram (File: {file_basename}, Method: STFT, Fs: {sample_rate} Hz, Segment Length: {4096}, Overlap: {0.99*100:.0f}%)"
+        plt.title(title)
         plt.savefig(spectrogram_plot_path)
     else:
         spectrogram_plot_path = os.path.join(output_dir, "wavelet_spectrogram_plot.png")
         cwt_matrix = perform_cwt(sample_rate, signal_data, max_frequency)
         plt.figure(dpi=200)
         plot_cwt_result(cwt_matrix, time_array, max_frequency)
+        title = f"Spectrogram (File: {file_basename}, Method: Wavelet, Fs: {sample_rate} Hz, Wavelet Width: {48})"
+        plt.title(title)
         plt.savefig(spectrogram_plot_path)
 
     return spectrogram_plot_path, signal_plot_path
