@@ -1,3 +1,8 @@
+import os
+if os.name == 'nt':
+    import sys
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 import gradio as gr
 from moviepy.editor import VideoFileClip
 from lab_tools import spectrogram
