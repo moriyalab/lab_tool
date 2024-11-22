@@ -132,5 +132,8 @@ with gr.Blocks() as main_ui:
         )
 
 if __name__ == "__main__":
-    main_ui.queue().launch(server_name="0.0.0.0", server_port=7860)
+    if os.name == 'nt':
+        main_ui.queue().launch()
+    else:
+        main_ui.queue().launch(server_name="0.0.0.0", server_port=7860)
     ytutil.remove_mp4_file()
