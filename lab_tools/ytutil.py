@@ -3,7 +3,20 @@ import os
 import glob
 
 
+def sanitize_filename(filename: str, max_length: int = 20) -> str:
+    """
+    ファイル名を安全な形式に変換し、長さを制限する
+    """
+    # 日本語をASCIIに置き換える（必要に応じて削除）
+    sanitized = "".join(c if c.isalnum() or c in "._-" else "_" for c in filename)
+    return sanitized[:max_length]
+
+
 def download_youtube(youtube_url: str) -> str:
+    video_info = get_video_info(youtube_url)
+    title = video_info["title"]
+    title = sanitize_filename(title)
+
     ydl_opts = {
         'postprocessors': [
             {
@@ -12,7 +25,8 @@ def download_youtube(youtube_url: str) -> str:
                 'preferredquality': '128',
             }
         ],
-        'outtmpl': '%(title)s.%(ext)s'
+        'format': 'bestaudio+worstvideo',
+        'outtmpl': title
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -26,8 +40,13 @@ def download_youtube(youtube_url: str) -> str:
 
 
 def download_youtube_video(youtube_url: str) -> str:
+    video_info = get_video_info(youtube_url)
+    title = video_info["title"]
+    title = sanitize_filename(title)
+
     ydl_opts = {
-        'outtmpl': '%(title)s.%(ext)s'
+        'format': 'bestaudio+worstvideo',
+        'outtmpl': title
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
