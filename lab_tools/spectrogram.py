@@ -77,7 +77,7 @@ def plot_stft_spectrogram(signal_data, sample_rate, segment_length, overlap=0.5,
 
     fig, ax = plt.subplots(figsize=(12, 6))
     spectrogram = ax.pcolormesh(times, frequencies, amplitude, cmap='jet', shading="auto", vmin=0, vmax=5)
-    fig.colorbar(spectrogram, ax=ax, orientation="vertical").set_label("Amplitude")
+    fig.colorbar(spectrogram, ax=ax, orientation="vertical").set_label("Power")
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Frequency [Hz]")
 
