@@ -76,7 +76,7 @@ def plot_stft_spectrogram(signal_data, sample_rate, segment_length, overlap=0.5,
     # プロット
 
     fig, ax = plt.subplots(figsize=(12, 6))
-    spectrogram = ax.pcolormesh(times, frequencies, amplitude, cmap='jet', shading="auto", vmin=0, vmax=5)
+    spectrogram = ax.pcolormesh(times, frequencies, amplitude, cmap='jet', shading="gourand", vmin=0, vmax=5)
     fig.colorbar(spectrogram, ax=ax, orientation="vertical").set_label("Power")
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Frequency [Hz]")
@@ -139,9 +139,9 @@ def generate_spectrogram_and_signal_plot(
     # スペクトログラムプロットの保存
     if analysis_method == "Short-Time Fourier Transform":
         plt.figure(dpi=200)
-        plot_stft_spectrogram(signal_data, sample_rate=sample_rate, segment_length=4096, overlap=0.99, max_frequency=max_frequency)
+        plot_stft_spectrogram(signal_data, sample_rate=sample_rate, segment_length=4096, overlap=0.9, max_frequency=max_frequency)
         spectrogram_plot_path = os.path.join(output_dir, "stft_spectrogram_plot.png")
-        title = f"Spectrogram (File: {file_basename}, Method: STFT, Fs: {sample_rate} Hz, Segment Length: {4096}, Overlap: {0.99*100:.0f}%)"
+        title = f"Spectrogram (File: {file_basename}, Method: STFT, Fs: {sample_rate} Hz, Segment Length: {4096}, Overlap: {0.9*100:.0f}%)"
         plt.title(title)
         plt.savefig(spectrogram_plot_path)
     else:
