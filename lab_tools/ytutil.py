@@ -51,7 +51,7 @@ def download_youtube_video(youtube_url: str) -> str:
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(youtube_url, download=True)
-        file_path = ydl.prepare_filename(info_dict)
+        file_path = ydl.prepare_filename(info_dict) + ".mp4"
         print(f"Downloaded file path: {file_path}")
 
     return file_path
