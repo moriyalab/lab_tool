@@ -54,25 +54,36 @@ with gr.Blocks() as main_ui:
         with gr.Row():
             with gr.Column():
                 file_input = gr.File(label="CSVファイルをアップロードしてください。", file_count="single", file_types=["csv"])
-                analysis_method = gr.Radio(
-                    ["Short-Time Fourier Transform", "Wavelet"],
-                    label="Analysis method",
-                    value="Short-Time Fourier Transform",
-                )
-                fs_slider = gr.Slider(minimum=0, maximum=10000, value=1000, label="サンプリング周波数", step=10, info="単位はHz。")
-                fmax_slider = gr.Slider(minimum=0, maximum=200, value=60, label="wavelet 最大周波数", step=10, info="単位はHz。")
-                column_dropdown = gr.Dropdown(["Fp1", "Fp2", "T7", "T8", "O1", "O2"], value="Fp2", label="使用する信号データ", allow_custom_value=True, info="使用する信号データを選んでください。デフォルトはFp2です。")
+                fmax_slider = gr.Slider(minimum=0, maximum=200, value=40, label="wavelet 最大周波数", step=10, info="単位はHz。")
                 start_time = gr.Slider(minimum=0, maximum=60, value=0.0, step=0.5, label="Start Time (sec)")
                 end_time = gr.Slider(minimum=0, maximum=60, value=60.0, step=0.5, label="End Time (sec)")
-                filter_setting = gr.Radio(
-                    ["No Filter", "High PASS", "Low PASS"],
-                    label="フィルター設定",
-                    value="High PASS",
-                )
-                fp_hp = gr.Slider(minimum=0, maximum=20, value=3, step=0.1, label="通過域端周波数 [Hz]")
-                fs_hp = gr.Slider(minimum=0, maximum=20, value=1, step=0.1, label="阻止域端周波数 [Hz]")
-                gpass = gr.Slider(minimum=0, maximum=100, value=3, step=1, label="通過域端最大損失 [dB]")
-                gstop = gr.Slider(minimum=0, maximum=100, value=40, step=1, label="阻止域端最小損失 [dB]")
+
+                with gr.Accordion(label="Band Intensityグラフ設定", open=True):
+                    band_intensity_setting = gr.Radio(
+                        ["GAMMA (greater than 30Hz)", "BETA (13-30Hz)", "ALPHA (8-12 Hz)", "THETA (4-8 Hz)", "DELTA (less than 4 Hz)"],
+                        label="使用する周波数帯",
+                        value="THETA (4-8 Hz)",
+                    )
+
+                with gr.Accordion(label="フィルター設定", open=False):
+                    filter_setting = gr.Radio(
+                        ["No Filter", "High PASS", "Low PASS"],
+                        label="使用するフィルター",
+                        value="High PASS",
+                    )
+                    fp_hp = gr.Slider(minimum=0, maximum=20, value=3, step=0.1, label="通過域端周波数 [Hz]")
+                    fs_hp = gr.Slider(minimum=0, maximum=20, value=1, step=0.1, label="阻止域端周波数 [Hz]")
+                    gpass = gr.Slider(minimum=0, maximum=100, value=3, step=1, label="通過域端最大損失 [dB]")
+                    gstop = gr.Slider(minimum=0, maximum=100, value=40, step=1, label="阻止域端最小損失 [dB]")
+
+                with gr.Accordion(label="詳細設定", open=False):
+                    analysis_method = gr.Radio(
+                        ["Short-Time Fourier Transform", "Wavelet"],
+                        label="Analysis method",
+                        value="Short-Time Fourier Transform",
+                    )
+                    fs_slider = gr.Slider(minimum=0, maximum=10000, value=1000, label="サンプリング周波数", step=10, info="単位はHz。")
+                    column_dropdown = gr.Dropdown(["Fp1", "Fp2", "T7", "T8", "O1", "O2"], value="Fp2", label="使用する信号データ", allow_custom_value=True, info="使用する信号データを選んでください。デフォルトはFp2です。")
 
                 submit_button = gr.Button("計算開始")
 
@@ -84,13 +95,14 @@ with gr.Blocks() as main_ui:
 
             with gr.Column():
                 wavelet_image = gr.Image(type="filepath", label="Spectrogram")
+                band_intensity = gr.Image(type="filepath", label="Band Intensity")
                 signal_image = gr.Image(type="filepath", label="Signal")
 
         submit_button.click(spectrogram.generate_spectrogram_and_signal_plot, inputs=[
             file_input, analysis_method,
             fs_slider, fmax_slider, column_dropdown, start_time, end_time,
-            filter_setting, fp_hp, fs_hp, gpass, gstop],
-            outputs=[wavelet_image, signal_image])
+            filter_setting, fp_hp, fs_hp, gpass, gstop, band_intensity_setting],
+            outputs=[wavelet_image, band_intensity, signal_image])
 
     with gr.Tab("1f noise analyze"):
         with gr.Row():
