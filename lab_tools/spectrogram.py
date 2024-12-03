@@ -28,6 +28,7 @@ def band_intensity_setting_to_band(input: str):
         print("Unknown")
         return (0, 0)
 
+
 # モルレーウェーブレットの計算
 def calculate_morlet_wavelet(time_array, frequency, wavelet_width):
     scale_factor = frequency / wavelet_width
@@ -88,6 +89,7 @@ def perform_stft(signal_data, sample_rate: int, segment_length: int, overlap=0.5
 
     return frequencies, times, amplitude
 
+
 # 短時間フーリエ変換 (STFT) のスペクトログラムをプロットする関数
 def plot_stft_spectrogram(amplitude, frequencies, times, max_frequency=None):
     """
@@ -108,6 +110,7 @@ def plot_stft_spectrogram(amplitude, frequencies, times, max_frequency=None):
     # 最大周波数の設定
     if max_frequency:
         ax.set_ylim([0, max_frequency])
+
 
 def plot_frequency_band_intensity(
         time_array, frequency_array, analysis_matrix, freq_band, method="STFT",):
@@ -193,7 +196,6 @@ def generate_spectrogram_and_signal_plot(
     plt.ylabel("Voltage [uV]")
     signal_plot_path = os.path.join(output_dir, "signal_plot.png")
     plt.savefig(signal_plot_path)
-
 
     freq_start, freq_end = band_intensity_setting_to_band(band_intensity_setting)
 

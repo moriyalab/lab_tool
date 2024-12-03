@@ -57,8 +57,7 @@ with gr.Blocks() as main_ui:
                 fmax_slider = gr.Slider(minimum=0, maximum=200, value=40, label="wavelet 最大周波数", step=10, info="単位はHz。")
                 start_time = gr.Slider(minimum=0, maximum=60, value=0.0, step=0.5, label="Start Time (sec)")
                 end_time = gr.Slider(minimum=0, maximum=60, value=60.0, step=0.5, label="End Time (sec)")
-                
-                
+
                 with gr.Accordion(label="Band Intensityグラフ設定", open=True):
                     band_intensity_setting = gr.Radio(
                         ["GAMMA (greater than 30Hz)", "BETA (13-30Hz)", "ALPHA (8-12 Hz)", "THETA (4-8 Hz)", "DELTA (less than 4 Hz)"],
