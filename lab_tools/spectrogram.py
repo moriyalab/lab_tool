@@ -361,7 +361,8 @@ def generate_spectrogram_and_signal_plot(
         config_yaml_path
     )
 
-    os.remove('/tmp/all_analyze_file.zip')
+    if os.path.exists('/tmp/all_analyze_file.zip'):
+        os.remove('/tmp/all_analyze_file.zip')
     ziped_file = zip_directory_with_command(output_dir, "/tmp/all_analyze_file.zip")
 
     return spectrogram_plot_path, plot_frequency_band_intensity_path, signal_plot_path, ziped_file
