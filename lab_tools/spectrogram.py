@@ -256,6 +256,9 @@ def zip_directory_with_command(directory_path, output_zip_path):
         directory_path (str): 圧縮するディレクトリのパス。
         output_zip_path (str): 出力するzipファイルのパス。
     """
+
+    if os.name == 'nt':
+        return None
     try:
         # zipコマンドを実行
         subprocess.run(['zip', '-j', '-r', output_zip_path, directory_path], check=True)
