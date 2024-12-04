@@ -54,6 +54,7 @@ def plot_cwt_result(cwt_matrix, time_array, max_frequency, fontsize=12):
     plt.colorbar().set_label("Power", fontsize=fontsize)
     plt.clim(0, 5)
     plt.gca().invert_yaxis()
+    plt.tick_params(axis='both', which='major', labelsize=fontsize)
 
 
 def perform_stft(signal_data, sample_rate: int, segment_length: int, overlap=0.5):
@@ -95,6 +96,8 @@ def plot_stft_spectrogram(amplitude, frequencies, times, max_frequency=None, fon
     if max_frequency:
         ax.set_ylim([0, max_frequency])
 
+    ax.tick_params(axis='both', which='major', labelsize=fontsize)
+
 
 def plot_signal(signal_data, time_data, start_time, end_time, fontsize, window_size=50):
     smoothed_signal = np.convolve(signal_data, np.ones(window_size) / window_size, mode='valid')
@@ -104,6 +107,7 @@ def plot_signal(signal_data, time_data, start_time, end_time, fontsize, window_s
     plt.xlim(start_time, end_time)
     plt.xlabel("Time [sec]", fontsize=fontsize)
     plt.ylabel("Voltage [uV]", fontsize=fontsize)
+    plt.tick_params(axis='both', which='major', labelsize=fontsize)
 
 
 def calculate_frequency_band_intensity(
@@ -162,6 +166,7 @@ def plot_frequency_band_intensity(
     plt.xlabel("Time [sec]", fontsize=fontsize)
     plt.ylabel("Integrated Power", fontsize=fontsize)
     plt.grid()
+    plt.tick_params(axis='both', which='major', labelsize=fontsize)
 
 
 def save_all_data_to_csv(
@@ -197,6 +202,50 @@ def save_all_data_to_csv(
 
     # CSVファイルに書き込み
     df.to_csv(output_path, index=False)
+
+
+def save_stft_to_csv(frequencies, times, amplitude, output_path):
+    """
+    STFTの結果(frequencies, times, amplitude)をCSVに書き出す関数
+
+    Parameters:
+        frequencies (np.ndarray): 周波数データ
+        times (np.ndarray): 時間データ
+        amplitude (np.ndarray): 振幅データ
+        output_path (str): 保存先のCSVファイルパス
+    """
+    # 周波数データを列名として使用
+    column_names = [f"Freq_{freq:.2f}Hz" for freq in frequencies]
+
+    # 振幅データをDataFrameに変換
+    df_amplitude = pd.DataFrame(amplitude.T, columns=column_names)
+    df_amplitude.insert(0, "Time [s]", times)  # 時間データを先頭列に挿入
+
+    # CSVファイルに書き出し
+    df_amplitude.to_csv(output_path, index=False)
+    print(f"STFT結果をCSVファイルとして保存しました: {output_path}")
+
+
+def save_cwt_to_csv(time_array, frequency_array, cwt_matrix, output_path):
+    """
+    CWTの結果(time_array, frequency_array, cwt_matrix)をCSVに書き出す関数
+
+    Parameters:
+        time_array (np.ndarray): 時間配列
+        frequency_array (np.ndarray): 周波数配列
+        cwt_matrix (np.ndarray): CWTの振幅データ (時間×周波数)
+        output_path (str): 保存先のCSVファイルパス
+    """
+    # 周波数データを列名として使用
+    column_names = [f"Freq_{freq:.2f}Hz" for freq in frequency_array]
+
+    # 振幅データをDataFrameに変換
+    df_cwt = pd.DataFrame(cwt_matrix.T, columns=column_names)
+    df_cwt.insert(0, "Time [s]", time_array)  # 時間データを先頭列に挿入
+
+    # CSVファイルに書き出し
+    df_cwt.to_csv(output_path, index=False)
+    print(f"CWT結果をCSVファイルとして保存しました: {output_path}")
 
 
 def export_arguments_to_yaml(
@@ -335,6 +384,9 @@ def generate_spectrogram_and_signal_plot(
         csv_path = os.path.join(output_dir, "band_intensity_data.csv")
         save_all_data_to_csv(times, frequencies, amplitude, csv_path, method="STFT", integration_method=integration_method)
 
+        spectrogram_raw_data_path = os.path.join(output_dir, "spectrogram_raw_data.csv")
+        save_stft_to_csv(frequencies, times, amplitude, spectrogram_raw_data_path)
+
     else:
         spectrogram_plot_path = os.path.join(output_dir, "wavelet_spectrogram_plot.png")
         cwt_matrix = perform_cwt(sample_rate, signal_data, max_frequency)
@@ -350,6 +402,9 @@ def generate_spectrogram_and_signal_plot(
 
         csv_path = os.path.join(output_dir, "band_intensity_data.csv")
         save_all_data_to_csv(time_array, np.arange(max_frequency), cwt_matrix, csv_path, method="CWT", integration_method=integration_method)
+
+        spectrogram_raw_data_path = os.path.join(output_dir, "spectrogram_raw_data.csv")
+        save_cwt_to_csv(time_array, np.arange(max_frequency), cwt_matrix, spectrogram_raw_data_path)
 
     config_yaml_path = os.path.join(output_dir, "lab_tool_spectrogram.yaml")
 
