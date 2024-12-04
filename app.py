@@ -84,6 +84,14 @@ with gr.Blocks() as main_ui:
                     )
                     fs_slider = gr.Slider(minimum=0, maximum=10000, value=1000, label="サンプリング周波数", step=10, info="単位はHz。")
                     column_dropdown = gr.Dropdown(["Fp1", "Fp2", "T7", "T8", "O1", "O2"], value="Fp2", label="使用する信号データ", allow_custom_value=True, info="使用する信号データを選んでください。デフォルトはFp2です。")
+                    integration_method = gr.Radio(
+                        ["Trapezoid(台形積分)", "Simpson(シンプソン法)"],
+                        label="Integration Method",
+                        value="Simpson(シンプソン法)",
+                    )
+                    segment_length = gr.Slider(minimum=0, maximum=8192, value=4096, step=1, label="STFT: セグメント長")
+                    overlap = gr.Slider(minimum=0, maximum=99, value=90, step=1, label="STFT: オーバーラップ率 [%]")
+                    fontsize = gr.Slider(minimum=0, maximum=20, value=12, step=1, label="グラフのフォントサイズ")
 
                 submit_button = gr.Button("計算開始")
 
@@ -94,6 +102,7 @@ with gr.Blocks() as main_ui:
                 )
 
             with gr.Column():
+                config_file = gr.File(label="Ziped Analyze File")
                 wavelet_image = gr.Image(type="filepath", label="Spectrogram")
                 band_intensity = gr.Image(type="filepath", label="Band Intensity")
                 signal_image = gr.Image(type="filepath", label="Signal")
@@ -101,8 +110,9 @@ with gr.Blocks() as main_ui:
         submit_button.click(spectrogram.generate_spectrogram_and_signal_plot, inputs=[
             file_input, analysis_method,
             fs_slider, fmax_slider, column_dropdown, start_time, end_time,
-            filter_setting, fp_hp, fs_hp, gpass, gstop, band_intensity_setting],
-            outputs=[wavelet_image, band_intensity, signal_image])
+            filter_setting, fp_hp, fs_hp, gpass, gstop, band_intensity_setting,
+            integration_method, segment_length, overlap, fontsize],
+            outputs=[wavelet_image, band_intensity, signal_image, config_file])
 
     with gr.Tab("1f noise analyze"):
         with gr.Row():
