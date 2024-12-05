@@ -111,9 +111,9 @@ def plot_signal(signal_data, time_data, start_time, end_time, fontsize, window_s
 
 
 def calculate_frequency_band_intensity(
-        frequency_array, analysis_matrix, freq_band, method="STFT", integration_method="simps"):
+        frequency_array, analysis_matrix, freq_band, window_size=10, method="STFT", integration_method="simps"):
     """
-    特定の周波数帯の強度を計算する関数
+    特定の周波数帯域の積分値を0〜36Hzの積分値で正規化した比率を計算する関数
 
     Parameters:
         frequency_array (np.ndarray): 周波数配列 (STFT の場合は frequency、CWT の場合は range(max_frequency))
@@ -123,9 +123,21 @@ def calculate_frequency_band_intensity(
         integration_method (str): 数値積分の手法 ("trapz" または "simps")
 
     Returns:
-        band_intensity (np.ndarray): 指定周波数帯域の強度の時間変化
+        band_intensity_ratio (np.ndarray): 指定周波数帯域の強度の時間変化 (0〜36Hz の積分値で正規化)
     """
-    # 周波数インデックスの範囲を取得
+    # 全帯域 (0〜36Hz) のインデックス範囲を取得
+    total_freq_band = (0, 36)
+    total_start, total_end = total_freq_band
+    if method == "STFT":
+        total_indices = np.where((frequency_array >= total_start) & (frequency_array <= total_end))[0]
+        total_values = frequency_array[total_indices]
+    elif method == "CWT":
+        total_indices = range(total_start, total_end + 1)
+        total_values = np.arange(total_start, total_end + 1)  # 仮の周波数配列
+    else:
+        raise ValueError("Invalid method. Use 'STFT' or 'CWT'.")
+
+    # 指定した周波数帯域のインデックス範囲を取得
     freq_start, freq_end = freq_band
     if method == "STFT":
         freq_indices = np.where((frequency_array >= freq_start) & (frequency_array <= freq_end))[0]
@@ -136,18 +148,26 @@ def calculate_frequency_band_intensity(
     else:
         raise ValueError("Invalid method. Use 'STFT' or 'CWT'.")
 
-    # 指定した周波数帯域の解析データを抽出
+    # 全帯域 (0〜36Hz) の解析データと指定帯域の解析データを抽出
+    total_matrix = analysis_matrix[total_indices, :]
     selected_matrix = analysis_matrix[freq_indices, :]
 
     # 積分の実行
     if integration_method == "trapz":
+        total_intensity = trapezoid(total_matrix, x=total_values, axis=0)
         band_intensity = trapezoid(selected_matrix, x=freq_values, axis=0)
     elif integration_method == "simps":
+        total_intensity = simpson(total_matrix, x=total_values, axis=0)
         band_intensity = simpson(selected_matrix, x=freq_values, axis=0)
     else:
         raise ValueError("Invalid integration method. Use 'trapz' or 'simps'.")
 
-    return band_intensity
+    # 比率を計算
+    band_intensity_ratio = band_intensity / total_intensity
+    smoothed_band_intensity_ratio = np.convolve(band_intensity_ratio, np.ones(window_size) / window_size, mode='valid')
+    smoothed_band_intensity = np.convolve(band_intensity_ratio, np.ones(window_size) / window_size, mode='valid')
+
+    return smoothed_band_intensity_ratio, band_intensity_ratio, band_intensity, smoothed_band_intensity
 
 
 def plot_frequency_band_intensity(
@@ -161,16 +181,19 @@ def plot_frequency_band_intensity(
         freq_band (tuple): 表示する周波数帯 (例: (10, 20))
         fontsize (int): プロットのフォントサイズ
     """
+    trimmed_time_array = time_array[:len(band_intensity)]
     plt.figure(figsize=(12, 6))
-    plt.plot(time_array, band_intensity)
+    plt.plot(trimmed_time_array, band_intensity)
     plt.xlabel("Time [sec]", fontsize=fontsize)
     plt.ylabel("Integrated Power", fontsize=fontsize)
+    plt.ylim(0.0, 1.0)
+    plt.xlim(0.0, trimmed_time_array[len(trimmed_time_array) - 1])
     plt.grid()
     plt.tick_params(axis='both', which='major', labelsize=fontsize)
 
 
 def save_all_data_to_csv(
-        time_array, frequency_array, analysis_matrix, output_path, method="STFT", integration_method="simps"):
+        time_array, frequency_array, analysis_matrix, output_path_normalized, output_path_raw, method="STFT", integration_method="simps"):
     """
     時間・周波数帯の解析データをCSVファイルに保存する関数 (pandasを使用)
 
@@ -178,30 +201,56 @@ def save_all_data_to_csv(
         time_array (np.ndarray): 時間配列
         frequency_array (np.ndarray): 周波数配列
         analysis_matrix (np.ndarray): STFTまたはCWTの解析結果
-        output_path (str): 保存先のCSVファイルパス
+        output_path_normalized (str): 正規化されたデータの保存先CSVファイルパス
+        output_path_raw (str): RAWデータの保存先CSVファイルパス
         method (str): 解析手法 ("STFT" または "CWT")
         integration_method (str): 数値積分の手法 ("trapz" または "simps")
     """
     # 各帯域の強度を計算
-    gamma = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (30, 36), method, integration_method)
-    beta = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (15, 30), method, integration_method)
-    alpha = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (8, 12), method, integration_method)
-    theta = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (4, 8), method, integration_method)
-    delta = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (0, 4), method, integration_method)
+    _, _, gamma_raw, gamma_smothed = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (30, 36), method=method, integration_method=integration_method)
+    _, _, beta_raw, beta_smothed = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (15, 30), method=method, integration_method=integration_method)
+    _, _, alpha_raw, alpha_smothed = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (8, 12), method=method, integration_method=integration_method)
+    _, _, theta_raw, theta_smothed = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (4, 8), method=method, integration_method=integration_method)
+    _, _, delta_raw, delta_smothed = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (0, 4), method=method, integration_method=integration_method)
+
+    # 全体の積分値を計算
+    total_intensity = gamma_smothed + beta_smothed + alpha_smothed + theta_smothed + delta_smothed
+
+    # 各帯域を正規化
+    gamma_normalized = gamma_smothed / total_intensity
+    beta_normalized = beta_smothed / total_intensity
+    alpha_normalized = alpha_smothed / total_intensity
+    theta_normalized = theta_smothed / total_intensity
+    delta_normalized = delta_smothed / total_intensity
 
     # pandas DataFrameにまとめる
-    data = {
-        "Time [sec]": time_array,
-        "Gamma [30-36 Hz]": gamma,
-        "Beta [15-30 Hz]": beta,
-        "Alpha [8-12 Hz]": alpha,
-        "Theta [4-8 Hz]": theta,
-        "Delta [0-4 Hz]": delta
+    trimmed_time_array = time_array[:len(gamma_smothed)]
+    data1 = {
+        "Time [sec]": trimmed_time_array,
+        "Gamma Normalized [30-36 Hz]": gamma_normalized,
+        "Beta Normalized [15-30 Hz]": beta_normalized,
+        "Alpha Normalized [8-12 Hz]": alpha_normalized,
+        "Theta Normalized [4-8 Hz]": theta_normalized,
+        "Delta Normalized [0-4 Hz]": delta_normalized,
     }
-    df = pd.DataFrame(data)
+    df1 = pd.DataFrame(data1)
 
     # CSVファイルに書き込み
-    df.to_csv(output_path, index=False)
+    df1.to_csv(output_path_normalized, index=False)
+
+    # pandas DataFrameにまとめる
+    data2 = {
+        "Time [sec]": time_array,
+        "Gamma Raw [30-36 Hz]": gamma_raw,
+        "Beta Raw [15-30 Hz]": beta_raw,
+        "Alpha Raw 8-12 Hz]": alpha_raw,
+        "Theta Raw [4-8 Hz]": theta_raw,
+        "Delta Raw [0-4 Hz]": delta_raw
+    }
+    df2 = pd.DataFrame(data2)
+
+    # CSVファイルに書き込み
+    df2.to_csv(output_path_raw, index=False)
 
 
 def save_stft_to_csv(frequencies, times, amplitude, output_path):
@@ -289,6 +338,9 @@ def export_arguments_to_yaml(
         "stft_settings": {
             "segment_length_samples": segment_length,  # セグメント長 (サンプル数)
             "overlap_ratio": overlap  # セグメントのオーバーラップ率
+        },
+        "all_band_intensity_analysis": {
+            "smoothed_window_size": 10
         }
     }
 
@@ -326,6 +378,73 @@ def generate_spectrogram_and_signal_plot(
         sample_rate, max_frequency, signal_column_name, start_time, end_time,
         filter_type, highpass_cutoff, stopband_cutoff, passband_ripple, stopband_attenuation,
         band_intensity_setting, integration_method, segment_length, overlap, fontsize):
+    """
+    入力パラメータに基づいてスペクトログラムと信号プロットを生成し、結果をファイルに保存する関数。
+
+    Parameters:
+        uploaded_file (File): 信号データを含むアップロードされたファイルオブジェクト。
+        analysis_method (str): 使用する解析方法 ("Short-Time Fourier Transform" または "Continuous Wavelet Transform")。
+        sample_rate (int): 信号のサンプリングレート (Hz)。
+        max_frequency (int): 解析する最大周波数 (Hz)。
+        signal_column_name (str): アップロードされたファイル内の信号データが含まれる列の名前。
+        start_time (float): 解析を開始する時刻 (秒)。
+        end_time (float): 解析を終了する時刻 (秒)。
+        filter_type (str): 適用するフィルターの種類 ("High PASS" または "Low PASS")。
+        highpass_cutoff (float): ハイパスフィルターのカットオフ周波数 (Hz)。
+        stopband_cutoff (float): フィルターのストップバンドカットオフ周波数 (Hz)。
+        passband_ripple (float): パスバンドで許容される最大リップル (dB)。
+        stopband_attenuation (float): ストップバンドでの最小減衰量 (dB)。
+        band_intensity_setting (str): 解析対象の周波数帯域 (例: "Gamma", "Beta", "Alpha")。
+        integration_method (str): 使用する数値積分法 ("simps" または "trapz")。
+        segment_length (int): STFT用のセグメント長 (サンプル数)。
+        overlap (float): STFTセグメント間のオーバーラップ率 (0.0 ～ 1.0)。
+        fontsize (int): 生成するプロットのフォントサイズ。
+
+    Returns:
+        tuple: 以下のパスを含むタプル:
+            - str: スペクトログラムプロットの保存先パス。
+            - str: 周波数帯域強度プロットの保存先パス。
+            - str: 信号プロットの保存先パス。
+            - str: すべての結果を含むZIPファイルの保存先パス。
+
+    Raises:
+        ValueError: アップロードされたファイルが有効な信号データを含んでいない場合。
+        FileNotFoundError: 必要なファイルまたはディレクトリにアクセスできない場合。
+        Exception: 処理やプロットの保存中に問題が発生した場合。
+
+    Notes:
+        - フィルタリング、CWTまたはSTFT解析を実行し、ユーザー入力に基づいてプロットを生成します。
+        - 中間および最終的な出力は一時ディレクトリに保存され、ダウンロード用にZIP化されます。
+        - 信号処理には `labutils` および `filter` モジュールを使用します。
+
+    Example:
+        ```python
+        # 使用例
+        spectrogram_path, band_intensity_path, signal_plot_path, zip_file_path = generate_spectrogram_and_signal_plot(
+            uploaded_file=my_file,
+            analysis_method="Short-Time Fourier Transform",
+            sample_rate=1000,
+            max_frequency=50,
+            signal_column_name="EEG Signal",
+            start_time=0,
+            end_time=10,
+            filter_type="High PASS",
+            highpass_cutoff=0.5,
+            stopband_cutoff=0.1,
+            passband_ripple=0.5,
+            stopband_attenuation=40,
+            band_intensity_setting="Alpha",
+            integration_method="simps",
+            segment_length=256,
+            overlap=0.5,
+            fontsize=14
+        )
+        print(f"スペクトログラムの保存先: {spectrogram_path}")
+        print(f"周波数帯域強度プロットの保存先: {band_intensity_path}")
+        print(f"信号プロットの保存先: {signal_plot_path}")
+        print(f"すべての結果が保存されたZIPファイル: {zip_file_path}")
+        ```
+    """
 
     file_path = uploaded_file.name
     file_basename = os.path.basename(file_path)
@@ -376,14 +495,14 @@ def generate_spectrogram_and_signal_plot(
         plt.savefig(spectrogram_plot_path)
 
         plt.figure(dpi=200)
-        band_intensity = calculate_frequency_band_intensity(frequencies, amplitude, (freq_start, freq_end), method="STFT", integration_method=integration_method)
+        band_intensity, _, _, _ = calculate_frequency_band_intensity(frequencies, amplitude, (freq_start, freq_end), method="STFT", integration_method=integration_method)
         plot_frequency_band_intensity(times, band_intensity, fontsize=fontsize)
         plot_frequency_band_intensity_path = os.path.join(output_dir, "band_intensity.png")
         plt.savefig(plot_frequency_band_intensity_path)
 
-        csv_path = os.path.join(output_dir, "band_intensity_data.csv")
-        save_all_data_to_csv(times, frequencies, amplitude, csv_path, method="STFT", integration_method=integration_method)
-
+        csv_path_normalized = os.path.join(output_dir, "band_intensity_data_normalized.csv")
+        csv_path_raw = os.path.join(output_dir, "band_intensity_data_raw.csv")
+        save_all_data_to_csv(times, frequencies, amplitude, csv_path_normalized, csv_path_raw, method="STFT", integration_method=integration_method)
         spectrogram_raw_data_path = os.path.join(output_dir, "spectrogram_raw_data.csv")
         save_stft_to_csv(frequencies, times, amplitude, spectrogram_raw_data_path)
 
@@ -395,13 +514,14 @@ def generate_spectrogram_and_signal_plot(
         plt.savefig(spectrogram_plot_path)
 
         plt.figure(dpi=200)
-        band_intensity = calculate_frequency_band_intensity(np.arange(max_frequency), cwt_matrix, (freq_start, freq_end), method="CWT", integration_method=integration_method)
+        band_intensity, _, _, _ = calculate_frequency_band_intensity(np.arange(max_frequency), cwt_matrix, (freq_start, freq_end), method="CWT", integration_method=integration_method)
         plot_frequency_band_intensity(time_array, band_intensity, fontsize=fontsize)
         plot_frequency_band_intensity_path = os.path.join(output_dir, "band_intensity.png")
         plt.savefig(plot_frequency_band_intensity_path)
 
-        csv_path = os.path.join(output_dir, "band_intensity_data.csv")
-        save_all_data_to_csv(time_array, np.arange(max_frequency), cwt_matrix, csv_path, method="CWT", integration_method=integration_method)
+        csv_path_normalized = os.path.join(output_dir, "band_intensity_data_normalized.csv")
+        csv_path_raw = os.path.join(output_dir, "band_intensity_data_raw.csv")
+        save_all_data_to_csv(time_array, np.arange(max_frequency), cwt_matrix, csv_path_normalized, csv_path_raw, method="CWT", integration_method=integration_method)
 
         spectrogram_raw_data_path = os.path.join(output_dir, "spectrogram_raw_data.csv")
         save_cwt_to_csv(time_array, np.arange(max_frequency), cwt_matrix, spectrogram_raw_data_path)
