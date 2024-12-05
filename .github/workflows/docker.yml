@@ -4,18 +4,18 @@ on:
     branches:
       - main
     paths:
-      - "Dockerfile"
-      - ".github/workflows/docker.yaml"
-      - "pyproject.toml"
-      - "poetry.lock"
+      - "!Dockerfile"
+      - "!.github/workflows/docker.yaml"
+      - "!pyproject.toml"
+      - "!poetry.lock"
   pull_request:
     branches:
       - main
     paths:
-      - "Dockerfile"
-      - ".github/workflows/docker.yaml"
-      - "pyproject.toml"
-      - "poetry.lock"
+      - "!Dockerfile"
+      - "!.github/workflows/docker.yaml"
+      - "!pyproject.toml"
+      - "!poetry.lock"
 
 jobs:
   build-and-push:
