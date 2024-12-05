@@ -378,6 +378,73 @@ def generate_spectrogram_and_signal_plot(
         sample_rate, max_frequency, signal_column_name, start_time, end_time,
         filter_type, highpass_cutoff, stopband_cutoff, passband_ripple, stopband_attenuation,
         band_intensity_setting, integration_method, segment_length, overlap, fontsize):
+    """
+    入力パラメータに基づいてスペクトログラムと信号プロットを生成し、結果をファイルに保存する関数。
+
+    Parameters:
+        uploaded_file (File): 信号データを含むアップロードされたファイルオブジェクト。
+        analysis_method (str): 使用する解析方法 ("Short-Time Fourier Transform" または "Continuous Wavelet Transform")。
+        sample_rate (int): 信号のサンプリングレート (Hz)。
+        max_frequency (int): 解析する最大周波数 (Hz)。
+        signal_column_name (str): アップロードされたファイル内の信号データが含まれる列の名前。
+        start_time (float): 解析を開始する時刻 (秒)。
+        end_time (float): 解析を終了する時刻 (秒)。
+        filter_type (str): 適用するフィルターの種類 ("High PASS" または "Low PASS")。
+        highpass_cutoff (float): ハイパスフィルターのカットオフ周波数 (Hz)。
+        stopband_cutoff (float): フィルターのストップバンドカットオフ周波数 (Hz)。
+        passband_ripple (float): パスバンドで許容される最大リップル (dB)。
+        stopband_attenuation (float): ストップバンドでの最小減衰量 (dB)。
+        band_intensity_setting (str): 解析対象の周波数帯域 (例: "Gamma", "Beta", "Alpha")。
+        integration_method (str): 使用する数値積分法 ("simps" または "trapz")。
+        segment_length (int): STFT用のセグメント長 (サンプル数)。
+        overlap (float): STFTセグメント間のオーバーラップ率 (0.0 ～ 1.0)。
+        fontsize (int): 生成するプロットのフォントサイズ。
+
+    Returns:
+        tuple: 以下のパスを含むタプル:
+            - str: スペクトログラムプロットの保存先パス。
+            - str: 周波数帯域強度プロットの保存先パス。
+            - str: 信号プロットの保存先パス。
+            - str: すべての結果を含むZIPファイルの保存先パス。
+
+    Raises:
+        ValueError: アップロードされたファイルが有効な信号データを含んでいない場合。
+        FileNotFoundError: 必要なファイルまたはディレクトリにアクセスできない場合。
+        Exception: 処理やプロットの保存中に問題が発生した場合。
+
+    Notes:
+        - フィルタリング、CWTまたはSTFT解析を実行し、ユーザー入力に基づいてプロットを生成します。
+        - 中間および最終的な出力は一時ディレクトリに保存され、ダウンロード用にZIP化されます。
+        - 信号処理には `labutils` および `filter` モジュールを使用します。
+
+    Example:
+        ```python
+        # 使用例
+        spectrogram_path, band_intensity_path, signal_plot_path, zip_file_path = generate_spectrogram_and_signal_plot(
+            uploaded_file=my_file,
+            analysis_method="Short-Time Fourier Transform",
+            sample_rate=1000,
+            max_frequency=50,
+            signal_column_name="EEG Signal",
+            start_time=0,
+            end_time=10,
+            filter_type="High PASS",
+            highpass_cutoff=0.5,
+            stopband_cutoff=0.1,
+            passband_ripple=0.5,
+            stopband_attenuation=40,
+            band_intensity_setting="Alpha",
+            integration_method="simps",
+            segment_length=256,
+            overlap=0.5,
+            fontsize=14
+        )
+        print(f"スペクトログラムの保存先: {spectrogram_path}")
+        print(f"周波数帯域強度プロットの保存先: {band_intensity_path}")
+        print(f"信号プロットの保存先: {signal_plot_path}")
+        print(f"すべての結果が保存されたZIPファイル: {zip_file_path}")
+        ```
+    """
 
     file_path = uploaded_file.name
     file_basename = os.path.basename(file_path)
