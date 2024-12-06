@@ -4,6 +4,13 @@
 
 ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+OS="$(uname)"
+
+if [[ $OS == "Darwin" ]]; then
+    docker pull ghcr.io/moriyalab/lab_tool:latest
+    docker run -it --rm -v $ROOT:/app -w /app -p 7860:7860 ghcr.io/moriyalab/lab_tool_dev:latest /bin/bash
+fi
+
 # Prevent running as root.
 if [[ $(id -u) -eq 0 ]]; then
     echo "This script cannot be executed with root privileges."
@@ -31,8 +38,8 @@ PLATFORM="$(uname -m)"
 
 if [ $PLATFORM = "x86_64" ]; then
     echo "x86"
-    docker pull ghcr.io/moriyalab/lab_tool_dev:latest
-    docker run -it --rm -v $ROOT:/app -w /app --network host ghcr.io/moriyalab/lab_tool_dev:latest /bin/bash
+    docker pull ghcr.io/moriyalab/lab_tool:latest
+    docker run -it --rm -v $ROOT:/app -w /app -p 7860:7860 ghcr.io/moriyalab/lab_tool_dev:latest /bin/bash
 else
-    echo "Not Support Platform. Only support x86."
+    echo "Not Support Platform. Only support Linux x86."
 fi
