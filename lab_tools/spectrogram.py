@@ -216,24 +216,24 @@ def save_all_data_to_csv(
         integration_method (str): 数値積分の手法 ("trapz" または "simps")
     """
     # 各帯域の強度を計算
-    gamma_raw, gamma_smothed = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (30, 36), method=method, integration_method=integration_method)
-    beta_raw, beta_smothed = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (15, 30), method=method, integration_method=integration_method)
-    alpha_raw, alpha_smothed = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (8, 12), method=method, integration_method=integration_method)
-    theta_raw, theta_smothed = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (4, 8), method=method, integration_method=integration_method)
-    delta_raw, delta_smothed = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (0, 4), method=method, integration_method=integration_method)
+    gamma_raw, _ = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (30, 36), method=method, integration_method=integration_method)
+    beta_raw, _ = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (15, 30), method=method, integration_method=integration_method)
+    alpha_raw, _ = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (8, 12), method=method, integration_method=integration_method)
+    theta_raw, _ = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (4, 8), method=method, integration_method=integration_method)
+    delta_raw, _ = calculate_frequency_band_intensity(frequency_array, analysis_matrix, (0, 4), method=method, integration_method=integration_method)
 
     # 全体の積分値を計算
-    total_intensity = gamma_smothed + beta_smothed + alpha_smothed + theta_smothed + delta_smothed
+    total_intensity = gamma_raw + beta_raw + alpha_raw + theta_raw + delta_raw
 
     # 各帯域を正規化
-    gamma_normalized = gamma_smothed / total_intensity
-    beta_normalized = beta_smothed / total_intensity
-    alpha_normalized = alpha_smothed / total_intensity
-    theta_normalized = theta_smothed / total_intensity
-    delta_normalized = delta_smothed / total_intensity
+    gamma_normalized = gamma_raw / total_intensity
+    beta_normalized = beta_raw / total_intensity
+    alpha_normalized = alpha_raw / total_intensity
+    theta_normalized = theta_raw / total_intensity
+    delta_normalized = delta_raw / total_intensity
 
     # pandas DataFrameにまとめる
-    trimmed_time_array = time_array[:len(gamma_smothed)]
+    trimmed_time_array = time_array[:len(gamma_raw)]
     data1 = {
         "Time [sec]": trimmed_time_array,
         "Gamma Normalized [30-36 Hz]": gamma_normalized,
