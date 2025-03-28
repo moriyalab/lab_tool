@@ -24,18 +24,24 @@ def spectrogram_test():
 
     plt.figure(dpi=200)
     plt.subplot(2, 1, 1)
-    spectrogram.plot_stft_spectrogram(modulated_signal, sample_rate=Fs, segment_length=512+256, overlap=0.99, max_frequency=fmax)
+    frequencies, times, amplitude = spectrogram.perform_stft(modulated_signal, Fs, 512+256, 0.99)
+
+    spectrogram.plot_stft_spectrogram(amplitude, frequencies, times, fmax, 20)
+
     spectrogram_filename = "cwt_result.png"
 
     plt.savefig(spectrogram_filename)
 
+    plt.figure(dpi=200)
     plt.figure(figsize=(12, 6))
     plt.plot(t, modulated_signal, label="Amplitude Modulated Signal", color="orange")
-    plt.title("Amplitude Modulated Signal")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Amplitude")
+    plt.title("Amplitude Modulated Signal", fontsize=20)
+    plt.xlabel("Time (s)", fontsize=20)
+    plt.ylabel("Amplitude", fontsize=20)
     plt.grid()
     plt.legend()
+    plt.tick_params(axis='both', which='major', labelsize=20)
+
 
     spectrogram_filename = "signal.png"
     plt.savefig(spectrogram_filename)

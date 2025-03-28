@@ -31,6 +31,7 @@ PLATFORM="$(uname -m)"
 
 if [ $PLATFORM = "x86_64" ]; then
     docker pull ghcr.io/moriyalab/lab_tool:latest
+    echo "access to here: http://localhost:7860"
     docker run --rm -p 7860:7860 ghcr.io/moriyalab/lab_tool:latest
 else
     echo "Not Support Platform. Only support x86."
